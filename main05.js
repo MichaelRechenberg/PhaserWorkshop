@@ -147,11 +147,6 @@ function shoot(){
         var bullet = projectiles.create(player.x -5, player.y, 'projectile');
         bullet.body.velocity.y = -200;
         timeElapsed = 0;
-        console.log(bullet);
     }
 
-}
-
-function rip(){
-    console.log("RIP");
 }

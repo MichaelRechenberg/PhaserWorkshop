@@ -42,10 +42,16 @@ function preload(){
     game.load.image('background', 'assets/images/background.png');
     //the 32 represents the width of each frame, the 48 refers to the height
     game.load.spritesheet('dude', 'assets/images/dude.png', 32, 48);
+    game.load.image('ground', 'assets/images/platform.png');
+    
 }
 
-var sail;
+// handle to the player
 var player;
+//handle to our movement controls (left, right, up, down)
+var movementControls;
+//handle to our ground 
+var ground;
 //create our Text, Sprite, and Group Objects
 function create(){
     console.log("create");
@@ -54,18 +60,59 @@ function create(){
     
     game.add.sprite(0,0,'background');
     
+    //add our ground
+    ground = game.add.sprite(0,game.world.height-32, 'ground');
+    game.physics.arcade.enable(ground);
+    ground.scale.setTo(2,1);
+    ground.enableBody = true;
+    //comment this line out and see what happens :P
+    ground.body.immovable = true;
+
+    
     player = game.add.sprite(game.world.centerX,0, 'dude');
     //enable physics on the player
     game.physics.arcade.enable(player);
     //give dude a bounce
-    player.body.bounce.y = 0.2;
+    player.body.bounce.y = 0.1;
     //acceleration (pixels per second^2)
-    player.body.gravity.y = 300;
+    player.body.gravity.y = 1000;
     //have it so the dude doesn't fall infinitely 
     player.body.collideWorldBounds = true;
+    //animations
+    player.animations.add('left', [0, 1, 2, 3], 10, true);
+    player.animations.add('right', [5, 6, 7, 8], 10, true);
+    
+    //set up our input
+    movementControls = game.input.keyboard.createCursorKeys();
 }
 
 //called every frame
 function update(){
+    //check for collisions between player and ground
+    game.physics.arcade.collide(player, ground);
+    if (movementControls.left.isDown)
+    {
+        //  Move to the left
+        player.body.velocity.x = -300;
+        player.animations.play('left');
+    }
+    else if (movementControls.right.isDown)
+    {
+        //  Move to the right
+        player.body.velocity.x = 300;
+        player.animations.play('right');
+    }
+    else{
+        player.body.velocity.x = 0;
+        player.animations.stop();
+        player.frame = 4;
+    }
+    
+    //  Allow the player to jump if they are touching the ground.
+    if (movementControls.up.isDown && player.body.touching.down)
+    {
+        console.log("jump!");
+        player.body.velocity.y = -500;
+    }
 
 }

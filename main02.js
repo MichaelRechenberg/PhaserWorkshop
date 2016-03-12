@@ -54,5 +54,4 @@ function create(){
 
 //called every frame
 function update(){
-    console.log("update");
 }
