@@ -1,53 +1,3 @@
-/*
-    Author: Michael Rechenberg
-    
-    A good reference for Phaser things: https://leanpub.com/html5shootemupinanafternoon/read
-    Phaser website (API information): http://phaser.io/
-    The execution of Phaser functions is as follows:
-        preload()
-        create()
-        update()
-        render()
-    preload() and create() only run once, while update() and render()
-    run every frame
-    render() is usually not needed, but is good for debugging
-    
-    x ----->
-    y 
-    |
-    |
-    V
-    ----/MAP----
-*/
-
-//Constants to define Phaser's width and height
-
-//Width of the game, where sprites will be drawn
-var GAME_WIDTH = 800;
-//Height of the game
-var GAME_HEIGHT = 600;
-
-
-//Reference to the core game object
-//If you want to use game.debug in the render() function, you need to set
-//  Phaser.AUTO to Phaser.CANVAS (the renderer)
-//The width is GAME_WIDTH pixels and the height is GAME_HEIGHT pixels
-var game = new Phaser.Game(GAME_WIDTH, GAME_HEIGHT, Phaser.AUTO,
- 'phaser-game', { preload: preload, create: create, update: update});
-
-//load our assets
-function preload(){
-    console.log("preload");
-    game.load.image('sail', 'assets/images/CS_Sail.png');
-    game.load.image('background', 'assets/images/background.png');
-    //the 32 represents the width of each frame, the 48 refers to the height
-    game.load.spritesheet('dude', 'assets/images/dude.png', 32, 48);
-    game.load.image('ground', 'assets/images/platform.png');
-    game.load.image('projectile', 'assets/images/projectile.png');
-    game.load.image('enemyShip', 'assets/images/enemyShip.png');
-    
-}
-
 // handle to the player
 var player;
 //handle to our movement controls (left, right, up, down)
@@ -78,12 +28,30 @@ var livesText;
 //score of the player
 var score = 0;
 
+//how many frames that have to elapse before the player can shoot again
+//  (roughly 60fps)
+var TIME_TO_SHOOT = 15;
+var timeElapsed = 0;
+var timer;
+var playState = {
+    
+//load our assets
+preload: function(){
+    console.log("preload");
+    game.load.image('sail', 'assets/images/CS_Sail.png');
+    game.load.image('background', 'assets/images/background.png');
+    //the 32 represents the width of each frame, the 48 refers to the height
+    game.load.spritesheet('dude', 'assets/images/dude.png', 32, 48);
+    game.load.image('ground', 'assets/images/platform.png');
+    game.load.image('projectile', 'assets/images/projectile.png');
+    game.load.image('enemyShip', 'assets/images/enemyShip.png');
+    
+},
+
 
 //create our Text, Sprite, and Group Objects
-function create(){
+create: function(){
     console.log("create");
-    //enable physics
-    game.physics.startSystem(Phaser.Physics.ARCADE);
     
     game.add.sprite(0,0,'background');
     
@@ -106,8 +74,8 @@ function create(){
     enemies = game.add.group();
     enemies.enableBody = true;
     //spawn an enemy after 'spawnTime' amount of milliseconds have passed
-    game.time.events.loop(spawnTime, spawnEnemy, this);
-    
+    game.time.reset();
+    game.time.events.loop(spawnTime, playState.spawnEnemy, game.time);
     
     player = game.add.sprite(game.world.centerX,0, 'dude');
     player.anchor.setTo(0.5, 0.5);
@@ -128,25 +96,20 @@ function create(){
     spaceBar = game.input.keyboard.addKey(Phaser.KeyCode.SPACEBAR)
     game.input.keyboard.addKeyCapture(Phaser.KeyCode.SPACEBAR);
     //call the shoot function whenever the spacebar is pressed
-    spaceBar.onDown.add(shoot, this);
+    spaceBar.onDown.add(this.shoot, this);
     
     
     //set up our text
     livesText = game.add.text(game.width-150, game.height-32, "Lives: 3", {fill: "#ffffff"});
     scoreText = game.add.text(20, 20, "Score: 0");
-    
-    
-}
+},
 
-//how many frames that have to elapse before the player can shoot again
-//  (roughly 60fps)
-var TIME_TO_SHOOT = 15;
-var timeElapsed = 0;
+
 //called every frame
-function update(){
+update: function(){
     game.physics.arcade.collide(player, ground);
-    game.physics.arcade.overlap(playerProjectiles, enemies, projectileEnemyCollision, null, null, this);
-    game.physics.arcade.overlap(enemies, ground, removeLife, null, null, this);
+    game.physics.arcade.overlap(playerProjectiles, enemies, playState.projectileEnemyCollision, null, null, this);
+    game.physics.arcade.overlap(enemies, ground, playState.removeLife, null, null, this);
     
     if (movementControls.left.isDown)
     {
@@ -174,81 +137,48 @@ function update(){
     }
     if(timeElapsed < TIME_TO_SHOOT)
         timeElapsed++;
-}
+},
 
 //called once the spacebar is pressed once
-function shoot(){
+shoot: function(){
     if(timeElapsed == TIME_TO_SHOOT){
         console.log("BANG!");
         var bullet = playerProjectiles.create(player.x -5, player.y, 'projectile');
         bullet.body.velocity.y = -400;
         timeElapsed = 0;
     }
-
-}
+},
 
 //remove the enemy from the screen when a projectile hits an enemy
-function projectileEnemyCollision(projectile, enemy){
+projectileEnemyCollision: function(projectile, enemy){
     projectile.kill();
     enemy.kill();
     score+=10;
     scoreText.setText("Score: " + score);
     console.log("RIP");
-}
+},
 
-function spawnEnemy(){
+spawnEnemy: function(){
     var randX = Math.floor(Math.random()*(game.world.width-40));
     var enemy = enemies.create(randX, 0, 'enemyShip');
     enemy.body.velocity.y = spawnSpeed;
     
-}
+},
 
 //kill the enemy ship sprite and decrease the amount of lives the player has
 //if the number of lives reaches zero, the game is over and the game is reset
-function removeLife(ground, enemy){
+removeLife: function(ground, enemy){
     enemy.kill();
     lives--;
     livesText.setText("Lives: " + lives);
     if(lives==0){
         console.log("GG");
-        reset();
+        game.state.start('Lose');
     }
 }
 
-/**
- *  Resets the game to its original state:
- *      resets text
- *      clears all groups
- *      resets timer
- */
- 
-function reset(){
-    var gameOver = game.add.text(game.world.centerX, game.world.centerY, "GAME OVER", 
-        {font: "5em Arial", fill: "#ff0000"});
-    gameOver.anchor.setTo(0.5, 0.5);
-    var finalScore = game.add.text(game.world.centerX, gameOver.y + gameOver.height + 20, 
-        "Final Score: " + score);
-    finalScore.anchor.setTo(0.5, 0.5);
-    var prompt = game.add.text(game.world.centerX, finalScore.y + finalScore.height + 20,
-        "Refresh the Page to Restart");
-    prompt.anchor.setTo(0.5, 0.5);
-    
-    
-    
-    
-    
-    score = 0;
-    lives = 3;
-    //reset the text
-    livesText.setText("Lives: 3");
-    scoreText.setText("Score: 0");
-    //clear the projectiles and enemies groups
-    playerProjectiles.removeAll(true);
-    enemies.removeAll(true);
-    player.x = game.world.centerX;
-    player.y = 0;
-    //reset the timer
-    game.time.reset();
-    game.time.events.loop(spawnTime, spawnEnemy, this);
-    
-}
+};//end play state
+
+
+
+
