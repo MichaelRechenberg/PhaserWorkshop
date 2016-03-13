@@ -44,6 +44,7 @@ function preload(){
     game.load.spritesheet('dude', 'assets/images/dude.png', 32, 48);
     game.load.image('ground', 'assets/images/platform.png');
     game.load.image('projectile', 'assets/images/projectile.png');
+    game.load.image('enemyShip', 'assets/images/enemyShip.png');
     
 }
 
@@ -61,6 +62,16 @@ var spaceBar;
 //handle for playerProjectiles
 var playerProjectiles;
 
+//Group containing the enemies
+var enemies;
+
+//how many milliseconds until the next enemy will be spawned(from above)
+var spawnTime = 2000;
+//how fast an enemy will descend
+var spawnSpeed = 35;
+
+var lives = 3;
+
 //create our Text, Sprite, and Group Objects
 function create(){
     console.log("create");
@@ -72,7 +83,7 @@ function create(){
     //add our ground
     ground = game.add.sprite(0,game.world.height-32, 'ground');
     game.physics.arcade.enable(ground);
-    ground.scale.setTo(2,1);
+    ground.scale.setTo(2,2);
     ground.enableBody = true;
     //comment this line out and see what happens :P
     ground.body.immovable = true;
@@ -83,6 +94,13 @@ function create(){
     //have playerProjectiles call their kill() method when they are offscreen
     playerProjectiles.setAll('outOfBoundsKill', true);
     playerProjectiles.setAll('checkWorldBounds', true);
+    
+    //create enemies group
+    enemies = game.add.group();
+    enemies.enableBody = true;
+    //spawn an enemy after 'spawnTime' amount of milliseconds have passed
+    game.time.events.loop(spawnTime, spawnEnemy, this);
+    
     
     player = game.add.sprite(game.world.centerX,0, 'dude');
     player.anchor.setTo(0.5, 0.5);
@@ -100,8 +118,8 @@ function create(){
     
     //set up our input
     movementControls = game.input.keyboard.createCursorKeys();
-    spaceBar = game.input.keyboard.addKey(Phaser.KeyCode.SPACEBAR);
-    game.input.keyboard.addKeyCapture(Phaser.KeyCode.SPACEBAR);
+    spaceBar = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR)
+    game.input.keyboard.addKeyCapture(Phaser.Keyboard.SPACEBAR);
     //call the shoot function whenever the spacebar is pressed
     spaceBar.onDown.add(shoot, this);
     
@@ -114,16 +132,19 @@ var timeElapsed = 0;
 //called every frame
 function update(){
     game.physics.arcade.collide(player, ground);
+    game.physics.arcade.overlap(playerProjectiles, enemies, projectileEnemyCollision, null, null, this);
+    game.physics.arcade.overlap(enemies, ground, removeLife, null, null, this);
+    
     if (movementControls.left.isDown)
     {
         //  Move to the left
-        player.body.velocity.x = -250;
+        player.body.velocity.x = -300;
         player.animations.play('left');
     }
     else if (movementControls.right.isDown)
     {
         //  Move to the right
-        player.body.velocity.x = 250;
+        player.body.velocity.x = 300;
         player.animations.play('right');
     }
     else{
@@ -145,10 +166,34 @@ function update(){
 //called once the spacebar is pressed once
 function shoot(){
     if(timeElapsed == TIME_TO_SHOOT){
-        console.log("BANG!");
+        console.log("BANG!")
         var bullet = playerProjectiles.create(player.x -5, player.y, 'projectile');
-        bullet.body.velocity.y = -200;
+        bullet.body.velocity.y = -400;
         timeElapsed = 0;
     }
+
+}
+
+//remove the enemy from the screen when a projectile hits an enemy
+function projectileEnemyCollision(projectile, enemy){
+    projectile.kill();
+    enemy.kill();
+    console.log("RIP");
+}
+
+function spawnEnemy(){
+    var randX = Math.floor(Math.random()*(game.world.width-40));
+    var enemy = enemies.create(randX, 0, 'enemyShip');
+    enemy.body.velocity.y = spawnSpeed;
+    
+}
+
+//kill the enemy ship sprite and decrease the amount of lives the player has
+//if the number of lives reaches zero, the game is over
+function removeLife(ground, enemy){
+    enemy.kill();
+    lives--;
+    if(lives==0)
+        console.log("GG");
 
 }
