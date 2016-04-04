@@ -211,7 +211,7 @@ function removeLife(ground, enemy){
     livesText.setText("Lives: " + lives);
     if(lives==0){
         console.log("GG");
-        reset();
+        gameOverScreen();
     }
 }
 
@@ -222,7 +222,7 @@ function removeLife(ground, enemy){
  *      resets timer
  */
  
-function reset(){
+function gameOverScreen(){
     var gameOver = game.add.text(game.world.centerX, game.world.centerY, "GAME OVER", 
         {font: "5em Arial", fill: "#ff0000"});
     gameOver.anchor.setTo(0.5, 0.5);
@@ -233,22 +233,5 @@ function reset(){
         "Refresh the Page to Restart");
     prompt.anchor.setTo(0.5, 0.5);
     
-    
-    
-    
-    
-    score = 0;
-    lives = 3;
-    //reset the text
-    livesText.setText("Lives: 3");
-    scoreText.setText("Score: 0");
-    //clear the projectiles and enemies groups
-    playerProjectiles.removeAll(true);
-    enemies.removeAll(true);
-    player.x = game.world.centerX;
-    player.y = 0;
-    //reset the timer
-    game.time.reset();
-    game.time.events.loop(spawnTime, spawnEnemy, this);
     
 }
